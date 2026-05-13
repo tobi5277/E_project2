@@ -1,0 +1,68 @@
+@startuml
+skinparam classStyle rectangle
+skinparam packageStyle rectilinear
+skinparam classIconSize 0
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+
+  class "main.cpp" as Main <<module>> {
+    +pwm: Adafruit_PWMServoDriver
+    +tsl: Adafruit_TSL2591
+    +setup()
+    +loop()
+  }
+
+  class "pwm_control.cpp" as PWMControl <<module>> {
+    +pwm: Adafruit_PWMServoDriver
+    +setup_pwm()
+    +fade_led(channel, start_value, end_value, delay_ms)
+  }
+
+  class "sensor_control.cpp" as SensorControl <<module>> {
+    +tsl: Adafruit_TSL2591
+    +pwm: Adafruit_PWMServoDriver
+    +lux_state: LuxSampleState
+    +last_sample_time: unsigned long
+    +integration_start_time: unsigned long
+    +integration_time_ms: uint16_t
+    +SAMPLE_INTERVAL_MS: const unsigned long
+    +init_light_sensor()
+    +read_lux_value()
+    +calculate_pwm_duty_cycle(lux)
+    +integration_time_to_ms(integration_time)
+    +sensor_control_update()
+  }
+
+
+class "Adafruit_PWMServoDriver" as PWMDriver
+class "Adafruit_TSL2591" as TSL2591
+class "Wire / I2C" as I2C
+class "Arduino Core" as ArduinoCore
+
+Main --> PWMControl : calls setup_pwm()
+Main --> SensorControl : calls init_light_sensor()\n sensor_control_update()
+PWMControl --> PWMDriver : uses global pwm
+SensorControl --> TSL2591 : uses global tsl
+SensorControl --> PWMDriver : updates LED outputs
+SensorControl --> I2C : init_light_sensor() initializes sensor via Wire
+Main --> ArduinoCore : Serial, Wire, millis(), delay()
+
+note right of Main
+  - Includes: pwm_control.h, sensor_control.h
+  - Setup initializes I2C, sensor, PWM
+  - Loop calls sensor_control_update()
+end note
+
+note left of SensorControl
+  - Contains the ambient light state machine
+  - Maps lux values to PWM duty cycles
+  - Uses a timer-driven sampling loop
+end note
+
+note left of PWMControl
+  - Configures PCA9685 for 1000 Hz
+  - Provides LED fade routines
+end note
+
+@enduml
