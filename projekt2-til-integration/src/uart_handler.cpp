@@ -26,7 +26,9 @@ void handle_preset_command(String command) {
     Serial.println("Invalid preset. Use 1-4.");
   }
 }
-
+/**
+ * Handle occupancy zones commands.
+ */
 void handle_zones_command(String command){
   parse_zones_command(command);
 }
