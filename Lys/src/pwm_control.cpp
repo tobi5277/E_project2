@@ -24,6 +24,10 @@ int selected_preset() {
 
 int get_pwm(int chnl){
   if (chnl < 0 || chnl >= NUM_CHANNELS) return 0;
+  Serial.print("PWM on channel ");
+  Serial.print(chnl);
+  Serial.print(": ");
+  Serial.println(fade_state[chnl].current);
   return fade_state[chnl].current;
 }
 
@@ -72,6 +76,13 @@ void get_current_saving(){
   int saving = 100 - ceil((cur_pwms_sum/(NUM_CHANNELS * 4095)) * 100);
   Serial.println(saving);
 }
+int dynamic_step(int current) {
+  if (current < 200) return 1;
+  if (current < 800) return 3;
+  if (current < 2000) return 8;
+  if (current < 3500) return 20;
+  return 40;
+}
 
 /* 
 Starts an asynchronous fade operation for the specified PWM channel.
@@ -86,7 +97,7 @@ void fade_led_async(int channel, int start_value, int end_value, int duration_ms
   if (channel < 0 || channel >=NUM_CHANNELS) return;
   // Ensure step_size is positive
   if (step_size <= 0) step_size = 1;
-  Fadestate fs = fade_state[channel];
+  Fadestate &fs = fade_state[channel];
   end_value = floor(end_value * (current_preset/4.0));
 
   /* If start and end values are the same or duration is invalid, 
@@ -129,6 +140,12 @@ This function should be called repeatedly in the main loop to advance
 the fade process. It checks if enough time has passed since the last update
 and increments the PWM value accordingly. Non-blocking and returns immediately
 if no update is needed or if no fade is active.
+
+
+********************
+OVERVEJ til steps:
+https://cdn-learn.adafruit.com/downloads/pdf/led-tricks-gamma-correction.pdf
+********************
 */
 void update_pwm_fade() {
   /*#######################
@@ -140,7 +157,7 @@ void update_pwm_fade() {
   unsigned long now = micros();  // Get current time in microseconds
   bool all_off = true; // temp check for burglary security.
   for (int ch = 0; ch < NUM_CHANNELS; ch++){
-    Fadestate fs = fade_state[ch];
+    Fadestate &fs = fade_state[ch];
 
     // If no fade is currently active, do nothing
     if (!fs.active) { continue; }
@@ -151,6 +168,7 @@ void update_pwm_fade() {
     
     // Update the timing and advance the fade
     fs.last_update = now;  // Record this update time
+    
     fs.current += fs.step;  // Increment or decrement the current PWM value
 
     // Check if the fade has reached or overshot the target value

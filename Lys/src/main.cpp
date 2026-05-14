@@ -36,7 +36,7 @@ void setup() {
 */
 void setup() {
   // Initialize serial communication for debugging
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   // Initialize I2C communication
   Wire.begin();
@@ -69,27 +69,36 @@ void loop() {
   //turn_all_lights_off();
 
   // Turn all lights off if 3 seconds have passed
-  if (((loop_timer - start) > 3000) && up){
-    fade_led_async(0, get_pwm(0), 0, 3000);
-    fade_led_async(1, get_pwm(1), 0, 3000);
-    fade_led_async(2, get_pwm(2), 0, 3000);
-    fade_led_async(3, get_pwm(3), 0, 3000);
-    up = false;
-  }
+    if (!is_fade_active(0) && !is_fade_active(1) &&
+        !is_fade_active(2) && !is_fade_active(3)){
+      fade_led_async(0, get_pwm(0), 0, 500);
+      fade_led_async(1, get_pwm(1), 0, 500);
+      fade_led_async(2, get_pwm(2), 0, 500);
+      fade_led_async(3, get_pwm(3), 0, 500);
+      up = false;
+    }
+
   // turn all lights off if 6 seconds have passed
   // and then reset timer.
-  else if (((loop_timer - start) > 6000) && !up){
-    fade_led_async(0, get_pwm(0), 3072, 3000);
-    fade_led_async(1, get_pwm(1), 3072, 3000);
-    fade_led_async(2, get_pwm(2), 3072, 3000);
-    fade_led_async(3, get_pwm(3), 3072, 3000);
-    up = true;
-    start = millis();
-
+    if (!is_fade_active(0) && !is_fade_active(1) &&
+        !is_fade_active(2) && !is_fade_active(3)){
+      fade_led_async(0, get_pwm(0), 3072, 1000);
+      fade_led_async(1, get_pwm(1), 3072, 1000);
+      fade_led_async(2, get_pwm(2), 3072, 1000);
+      fade_led_async(3, get_pwm(3), 3072, 1000);
+      up = true;
+      start = loop_timer; 
+    }
+  /* Serial.println("I2C Scanner");
+  for (byte address = 1; address < 127; address++) {
+    Wire.beginTransmission(address);
+    if (Wire.endTransmission() == 0) {
+      Serial.print("Found device at 0x");
+      Serial.println(address, HEX);
+    }
   }
-
+  delay(1000); */
   
-
   
 
 }
