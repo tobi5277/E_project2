@@ -124,7 +124,7 @@ void fade_led_async(int channel, int start_value, int end_value, int duration_ms
   if (fs.interval < 1) {
     fs.interval = 1;  // Minimum interval
   }
-
+  
   // Initialize timing and set initial PWM value
   fs.last_update = micros();  // Record start time in microseconds
   pwm.setPWM(channel, 0, fs.current);  // Set PWM to starting value
@@ -177,6 +177,9 @@ void update_pwm_fade() {
       fs.current = fs.end;  // Clamp to target value
       fs.active = false;  // Deactivate the fade when complete
     }
+
+
+
     pwm.setPWM(ch, 0, fs.current);  // Apply the new PWM value
   }
   for (int i = 0; i < NUM_CHANNELS; i++) {
