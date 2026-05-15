@@ -1,13 +1,13 @@
 #include "tyveri_sikring.h"
 #include "pwm_control.h"
 
-#define MAX_TYVERI_TIME 3600000UL   // 1 hour
-#define MAX_TYV_ON_TIME 300000UL    // 5 minutes
+#define MAX_TYVERI_TIME 10000   // 10 s
+#define MAX_TYV_ON_TIME 2000    // 2 s
 
 struct TyveriSikring tyveri_sikring = {
   .tyveri_on = false,
   .state = TYVERI_IDLE,
-  .phase_start_time = 0
+  .phase_start_time = millis(),
 };
 
 void update_tyveri_sikring() {
@@ -25,7 +25,6 @@ void update_tyveri_sikring() {
     if (!all_lights_off_bool){
         tyveri_sikring.state = TYVERI_IDLE;
     }
-    
     return;
   }
 

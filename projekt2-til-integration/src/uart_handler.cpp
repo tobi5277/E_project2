@@ -48,7 +48,9 @@ void route_command(String command) {
   else if (command.startsWith("Zones")){
     handle_zones_command(command);
   }
-
+  else if (command.startsWith("ShutDown")){
+    return;
+  }
 }
 
 /**

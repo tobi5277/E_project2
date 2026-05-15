@@ -41,10 +41,8 @@ void setup() {
   Serial2.begin(9600); // RX2(17), TX2(16)
   // Initialize I2C communication
   Wire.begin();
-
   // Initialize TSL2591
   init_light_sensor();
-  
   setup_pwm();
   
   //Serial.println("PCA9685 initialized and ready!");
@@ -55,7 +53,6 @@ void loop() {
   sensor_control_update();    // Update light sensor
   update_tyveri_sikring();    // Update burglary state machine
   update_pwm_fade();          // Update LED fades
-
 }
 
 

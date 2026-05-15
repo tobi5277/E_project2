@@ -50,6 +50,13 @@ void parse_zones_command(String command){
     command[1] - '0', 
     command[2] - '0', 
     command[3] - '0'};
+
+  Serial.print("OCCUPIED ZONES CHANGED: ");
+  for (int i = 0; i < NUM_ZONES; i++){
+    Serial.print(new_zones[i]);
+    Serial.print(" ");
+  }
+  Serial.print('\n');
   update_occupancy_zones(new_zones);
 }
 
@@ -90,7 +97,8 @@ void get_current_saving(){
     cur_pwms_sum += get_pwm(i);
   }
   int saving = 100 - ceil((cur_pwms_sum/(NUM_CHANNELS * 4095)) * 100);
-  Serial.println(saving);
+  Serial1.print("SAVING ");
+  Serial1.println(saving);
 }
 
 /* 
@@ -118,6 +126,7 @@ void fade_led_async(int channel, int start_value, int end_value, int duration_ms
   if (start_value == end_value || duration_ms <= 0) {
     pwm.setPWM(channel, 0, end_value);
     fs.active = false;
+    get_current_saving();
     return;
   }
 
