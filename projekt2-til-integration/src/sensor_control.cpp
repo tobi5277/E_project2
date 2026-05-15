@@ -8,7 +8,7 @@ enum LuxSampleState {
 };
 // initial lux sampling state
 static LuxSampleState lux_state = LUX_IDLE;
-
+static int cur_pwms_pre_waiting[4] = {0};
 // timer variable for millis() comparisons
 static unsigned long last_sample_time = 0;
 static unsigned long integration_start_time = 0;
@@ -109,14 +109,21 @@ void sensor_control_update(){
     case LUX_IDLE:
       if (now - last_sample_time >= SAMPLE_INTERVAL_MS) {
         last_sample_time = now;
-
-        // Turn off all LED's
-        for (int i = 0; i < 16; i++) {
-          pwm.setPWM(i, 0, 0);
+        for (int i = 0; i < 4; i++){
+          cur_pwms_pre_waiting[i] = get_pwm(i);
         }
+        
+        // Turn off all LED's
+        for (int i = 0; i < 4; i++) {
+          pwm.setPWM(i, 0, 0);
+          stop_fade();
+        }
+        
         integration_start_time = now;
         lux_state = LUX_WAITING;
         Serial.println("Measuring LUX");
+
+        
       }
       break;
 
@@ -124,12 +131,18 @@ void sensor_control_update(){
       if (now - integration_start_time >= integration_time_ms) {
 
         float lux = read_lux_value();
+        Serial.println(lux);
         uint16_t new_pwm = (uint16_t)calculate_pwm_duty_cycle(lux);
-
+        for (int i = 0; i < 4; i++){
+          pwm.setPWM(i, 0, cur_pwms_pre_waiting[i]);
+        }
+        
         /*Set all LED's new pwm to the calculated pwm based on room luminosity. */
-        for (int i = 0; i < 16; i++) {
-          uint8_t current_pwm = pwm.getPWM(i);
+        for (int i = 0; i < 4; i++) {
+          uint8_t current_pwm = cur_pwms_pre_waiting[i];
           uint8_t step_size = abs(new_pwm - current_pwm) / 500;
+          if (current_pwm == new_pwm) continue;
+
           if (step_size < 1) step_size = 1;
           fade_led_async(i, current_pwm, new_pwm, 500, step_size);
         }

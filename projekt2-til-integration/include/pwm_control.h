@@ -19,5 +19,7 @@ void fade_led_async(int channel, int start_value, int end_value, int duration_ms
 void update_pwm_fade();
 bool is_fade_active();
 
+void stop_fade();
+
 
 #endif // PWM_CONTROL_H

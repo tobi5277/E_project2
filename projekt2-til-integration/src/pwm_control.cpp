@@ -101,6 +101,12 @@ void get_current_saving(){
   Serial1.println(saving);
 }
 
+void stop_fade(){
+  for (int i = 0; i < NUM_CHANNELS; i++){
+    fade_state[i].active = false;
+  }
+}
+
 /* 
 Starts an asynchronous fade operation for the specified PWM channel.
 This function initiates a non-blocking fade from start_value to end_value
@@ -217,8 +223,6 @@ void update_pwm_fade() {
     lights_off_since = millis();
   }
   all_lights_off_bool = all_off;
-  
-  
 }
 
 bool is_fade_active(int channel) {
