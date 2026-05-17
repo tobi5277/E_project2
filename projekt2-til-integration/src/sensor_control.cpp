@@ -2,16 +2,13 @@
 #include "pwm_control.h"
 #include <Arduino.h>
 
-// State machine enum for lux sensor state.
-enum LuxSampleState {
-  LUX_WAITING, LUX_IDLE
-};
-// initial lux sampling state
-static LuxSampleState lux_state = LUX_IDLE;
-static int cur_pwms_pre_waiting[4] = {0};
+
+float ambient_offset = 0;
+bool ambient_calibrated = false;
+
 // timer variable for millis() comparisons
 static unsigned long last_sample_time = 0;
-static unsigned long integration_start_time = 0;
+// static unsigned long integration_start_time = 0;
 
 // global variable for integration time for comparisons
 static uint16_t integration_time_ms = 100;
@@ -19,6 +16,17 @@ static uint16_t integration_time_ms = 100;
 // How often to resample ambient light
 static const unsigned long SAMPLE_INTERVAL_MS = 1000;
 
+
+void calibrate_ambient(){
+
+  delay(200); // let sensor settle
+  ambient_offset = read_lux_value();
+  ambient_calibrated = true;
+
+  Serial.print("Calibrating ambient offset: ");
+  Serial.println(ambient_offset);
+
+}
 
 // Function definitions
 void init_light_sensor() {
@@ -34,14 +42,17 @@ void init_light_sensor() {
   // get actual integration time in ms
   tsl2591IntegrationTime_t it = tsl.getTiming();
   integration_time_ms = integration_time_to_ms(it);
+  delay(integration_time_ms + 50);
 
-  // 
-  last_sample_time = millis();
+  
 
   // Optional debug
   Serial.print("TSL2591 integration time (ms): ");
   Serial.println(integration_time_ms);
 
+  calibrate_ambient();
+  // 
+  last_sample_time = millis();
 
   Serial.println("TSL2591 initialized!");
 }
@@ -72,7 +83,20 @@ int calculate_pwm_duty_cycle(float lux) {
   // Map lux values to PWM duty cycle (0-4095)
   // Lower lux should produce brighter output, higher lux should dim the LEDs.
 
-  uint8_t lux_case;
+  float min_lux = 0;
+  float max_lux = 1000;
+
+  // clamp lux to a valid range (0 - 4095)
+  lux = constrain(lux, min_lux, max_lux); 
+  // normalize lux to range [0,1]
+  float normalized = (lux - min_lux) / (max_lux - min_lux);
+
+  // invert the response (high pwm -> low LED), and scale to pwm
+  int pwm = (1.0 - normalized) * 4095;
+  return pwm;
+
+
+  /* uint8_t lux_case;
   if (lux < 50) {
     lux_case = 0;
   } else if (lux < 200) {
@@ -96,7 +120,7 @@ int calculate_pwm_duty_cycle(float lux) {
       return 1024;
     default: // outdoors / very bright
       return 256;
-  }
+  } */
 }
 
 /* called in loop(): updates sensor values after designated time
@@ -104,52 +128,34 @@ has passed, and update LED pwm correspondingly. */
 
 void sensor_control_update(){
   unsigned long now = millis();
+  if (now - last_sample_time >= SAMPLE_INTERVAL_MS) {
+    last_sample_time = now;
+    float raw = read_lux_value();
 
-  switch (lux_state) {
-    case LUX_IDLE:
-      if (now - last_sample_time >= SAMPLE_INTERVAL_MS) {
-        last_sample_time = now;
-        for (int i = 0; i < 4; i++){
-          cur_pwms_pre_waiting[i] = get_pwm(i);
-        }
-        
-        // Turn off all LED's
-        for (int i = 0; i < 4; i++) {
-          pwm.setPWM(i, 0, 0);
-          stop_fade();
-        }
-        
-        integration_start_time = now;
-        lux_state = LUX_WAITING;
-        Serial.println("Measuring LUX");
+    float corrected = raw - ambient_offset;
+    if (corrected < 0) corrected = 0.0;
 
-        
-      }
-      break;
+    // Debug output
+    Serial.println("LUX MEASUREMENT AND CORRECTION:");
+    Serial.print("Raw: ");
+    Serial.print(raw);
+    Serial.print(" | Ambient: ");
+    Serial.print(ambient_offset);
+    Serial.print(" | Corrected: ");
+    Serial.println(corrected);
 
-    case LUX_WAITING:
-      if (now - integration_start_time >= integration_time_ms) {
+    int target_pwm = calculate_pwm_duty_cycle(corrected);
 
-        float lux = read_lux_value();
-        Serial.println(lux);
-        uint16_t new_pwm = (uint16_t)calculate_pwm_duty_cycle(lux);
-        for (int i = 0; i < 4; i++){
-          pwm.setPWM(i, 0, cur_pwms_pre_waiting[i]);
-        }
-        
-        /*Set all LED's new pwm to the calculated pwm based on room luminosity. */
-        for (int i = 0; i < 4; i++) {
-          uint8_t current_pwm = cur_pwms_pre_waiting[i];
-          uint8_t step_size = abs(new_pwm - current_pwm) / 500;
-          if (current_pwm == new_pwm) continue;
-
-          if (step_size < 1) step_size = 1;
-          fade_led_async(i, current_pwm, new_pwm, 500, step_size);
-        }
-        lux_state = LUX_IDLE;
-        Serial.print("PWM updated: ");
-        Serial.println(new_pwm);
-      }
-      break;
+    for (int i = 0; i < 4; i++) {
+      int current_pwm = get_pwm(i);
+      if (current_pwm == target_pwm) continue;
+      
+      int difference = abs(target_pwm - current_pwm);
+      int steps = 50;
+      int step_size = difference / steps;
+      
+      if (step_size < 1) step_size = 1;
+      fade_led_async(i, current_pwm, target_pwm, 500, step_size);
+    }
   }
 }
