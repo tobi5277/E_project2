@@ -1,68 +1,97 @@
 @startuml
+top to bottom direction
+
 skinparam classStyle rectangle
 skinparam packageStyle rectilinear
 skinparam classIconSize 0
 skinparam classAttributeIconSize 0
 skinparam linetype ortho
+hide circle
+
+class "main.cpp" as Main <<module>> {
+  +pwm: Adafruit_PWMServoDriver
+  +tsl: Adafruit_TSL2591
+  +setup()
+  +loop()
+}
+
+class "pwm_control.cpp" as PWMControl <<module>> {
+  +pwm: Adafruit_PWMServoDriver
+  +setup_pwm() : void
+  +get_pwm(int channel) : int
+  +update_selected_preset() : void
+  +update_selected_preset_value(int new_preset) : void
+  +update_occupancy_zones(int zones[4]) : void
+  +parse_zones_command(String command) : void
+  +fade_led(int channel, int start_value, int end_value, int delay_ms) : void
+  +fade_led_async(int channel, int start_value, int end_value, int duration_ms, int step_size = 1) : void
+  +update_pwm_fade() : void
+  +is_fade_active() : bool
+  +stop_fade() : void
 
 
-  class "main.cpp" as Main <<module>> {
-    +pwm: Adafruit_PWMServoDriver
-    +tsl: Adafruit_TSL2591
-    +setup()
-    +loop()
-  }
+}
 
-  class "pwm_control.cpp" as PWMControl <<module>> {
-    +pwm: Adafruit_PWMServoDriver
-    +setup_pwm()
-    +fade_led(channel, start_value, end_value, delay_ms)
-  }
+class "sensor_control.cpp" as SensorControl <<module>> {
+  +tsl: Adafruit_TSL2591
+  +pwm: Adafruit_PWMServoDriver
+  +lux_state: LuxSampleState
+  +ambient_offset : float
+  +ambient_calibrated : bool
+  +last_sample_time: unsigned long
+  +integration_time_ms: uint16_t
+  +SAMPLE_INTERVAL_MS: const unsigned long
+  +calibrate_ambient() : void
+  +init_light_sensor() : void
+  +read_lux_value() : float
+  +calculate_pwm_duty_cycle(float lux) : int
+  +integration_time_to_ms(tsl2591IntegrationTime_t integration_time) : uint16_t
+  +sensor_control_update() : void
+}
 
-  class "sensor_control.cpp" as SensorControl <<module>> {
-    +tsl: Adafruit_TSL2591
-    +pwm: Adafruit_PWMServoDriver
-    +lux_state: LuxSampleState
-    +last_sample_time: unsigned long
-    +integration_start_time: unsigned long
-    +integration_time_ms: uint16_t
-    +SAMPLE_INTERVAL_MS: const unsigned long
-    +init_light_sensor()
-    +read_lux_value()
-    +calculate_pwm_duty_cycle(lux)
-    +integration_time_to_ms(integration_time)
-    +sensor_control_update()
-  }
+class "uart_handler.cpp" as UARTHandler <<module>> {
+  +handle_burglary_command(String command) : void
+  +handle_preset_command(String command) : void
+  +handle_zones_command(String command) : void
+  +route_command(String command) : void
+  +uart_handler_update() : void
+}
+class "tyveri_sikring.cpp" as BurglaryProtection <<module>> {
+  +parse_burglary_command(String command) : void
+  +update_tyveri_sikring() : void
+  +tyveri_sikring : TyveriSikring
+}
+class "Adafruit_PWMServoDriver" as PWMDriver <<external>>
+class "Adafruit_TSL2591" as TSL2591 <<external>>
+class "Wire / I2C" as I2C <<external>>
+class "Arduino Core" as ArduinoCore <<external>>
 
 
-class "Adafruit_PWMServoDriver" as PWMDriver
-class "Adafruit_TSL2591" as TSL2591
-class "Wire / I2C" as I2C
-class "Arduino Core" as ArduinoCore
 
-Main --> PWMControl : calls setup_pwm()
-Main --> SensorControl : calls init_light_sensor()\n sensor_control_update()
-PWMControl --> PWMDriver : uses global pwm
-SensorControl --> TSL2591 : uses global tsl
-SensorControl --> PWMDriver : updates LED outputs
-SensorControl --> I2C : init_light_sensor() initializes sensor via Wire
-Main --> ArduinoCore : Serial, Wire, millis(), delay()
+Main "1"..> "1" PWMControl : setup_pwm()\nupdate()
+Main "1"..> "1" SensorControl : init + update
+Main "1"..> "1" UARTHandler : update()
+Main "1"..> "1" BurglaryProtection : update()
 
-note right of Main
-  - Includes: pwm_control.h, sensor_control.h
-  - Setup initializes I2C, sensor, PWM
-  - Loop calls sensor_control_update()
-end note
 
-note left of SensorControl
-  - Contains the ambient light state machine
-  - Maps lux values to PWM duty cycles
-  - Uses a timer-driven sampling loop
-end note
 
-note left of PWMControl
-  - Configures PCA9685 for 1000 Hz
-  - Provides LED fade routines
-end note
+SensorControl "1" --> "1" TSL2591 : reads lux
+
+SensorControl "1"..> "1" PWMControl : set/update PWM
+PWMControl "1" --> "1" PWMDriver : controls PWM
+
+SensorControl "1"..> "1" I2C : sensor comm
+
+Main "1"..> "1" ArduinoCore : \n\n\n\nSerial, Wire, timing, String
+
+Main -[hidden]-> PWMControl
+PWMControl -[hidden]-> SensorControl
+SensorControl -[hidden]-> UARTHandler
+UARTHandler -[hidden]-> BurglaryProtection
+
+PWMDriver -[hidden]-> TSL2591
+TSL2591 -[hidden]-> I2C
+I2C -[hidden]-> ArduinoCore
+
 
 @enduml
