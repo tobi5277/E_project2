@@ -44,6 +44,7 @@ void setup_pwm() {
 
 void parse_zones_command(String command){
   command = command.substring(5); // first 5 is "Zones"
+  Serial.println(command);
   // rest is the occupancy array
   int new_zones[4] = {
     command[0] - '0', 
@@ -171,12 +172,6 @@ and increments the PWM value accordingly. Non-blocking and returns immediately
 if no update is needed or if no fade is active.
 */
 void update_pwm_fade() {
-  /*#######################
-    Overvej at give aktive zoner som parameter her (og i fade),
-    så vi ved hvilke zoner der skal opdateres ift. hvordan det svarer
-    til bestemte LED'er. Evt. kunne det bare være et array, eks.
-    [0,1,1,0] som representerer zoner der skal belyses.
-    ####################### */
   unsigned long now = micros();  // Get current time in microseconds
   bool all_off = true; // temp check for burglary security.
 

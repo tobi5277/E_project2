@@ -14,9 +14,13 @@ static unsigned long last_sample_time = 0;
 static uint16_t integration_time_ms = 100;
 
 // How often to resample ambient light
-static const unsigned long SAMPLE_INTERVAL_MS = 1000;
+static const unsigned long SAMPLE_INTERVAL_MS = 500;
 
-
+/* Calibrate sensor for current ambient lighting. 
+   Only run at initialization of the sensor. 
+   Here we simply use an offset of ambient light,
+   since light is additive, we can later subtract
+   this offset from our measurement to */
 void calibrate_ambient(){
 
   delay(200); // let sensor settle
@@ -60,8 +64,9 @@ void init_light_sensor() {
 
 float read_lux_value() {
   uint32_t full_lum = tsl.getFullLuminosity();
-  uint16_t ir = full_lum >> 16;
-  uint16_t full = full_lum & 0xFFFF;
+  uint16_t ir = full_lum >> 16; // high word is infrared
+  uint16_t full = full_lum & 0xFFFF; // low word is visible 
+
   float lux = tsl.calculateLux(full, ir);
   return lux;
 }
@@ -82,12 +87,12 @@ uint16_t integration_time_to_ms(tsl2591IntegrationTime_t integration_time){
 int calculate_pwm_duty_cycle(float lux) {
   // Map lux values to PWM duty cycle (0-4095)
   // Lower lux should produce brighter output, higher lux should dim the LEDs.
-
   float min_lux = 0;
   float max_lux = 1000;
 
   // clamp lux to a valid range (0 - 4095)
   lux = constrain(lux, min_lux, max_lux); 
+
   // normalize lux to range [0,1]
   float normalized = (lux - min_lux) / (max_lux - min_lux);
 
@@ -95,54 +100,28 @@ int calculate_pwm_duty_cycle(float lux) {
   int pwm = (1.0 - normalized) * 4095;
   return pwm;
 
-
-  /* uint8_t lux_case;
-  if (lux < 50) {
-    lux_case = 0;
-  } else if (lux < 200) {
-    lux_case = 1;
-  } else if (lux < 500) {
-    lux_case = 2;
-  } else if (lux < 1000) {
-    lux_case = 3;
-  } else {
-    lux_case = 4;
-  }
-
-  switch (lux_case) {
-    case 0: // very dark
-      return 4095;
-    case 1: // dim indoor
-      return 3072;
-    case 2: // normal indoor
-      return 2048;
-    case 3: // bright indoor
-      return 1024;
-    default: // outdoors / very bright
-      return 256;
-  } */
 }
 
 /* called in loop(): updates sensor values after designated time
 has passed, and update LED pwm correspondingly. */
-
 void sensor_control_update(){
   unsigned long now = millis();
   if (now - last_sample_time >= SAMPLE_INTERVAL_MS) {
     last_sample_time = now;
+
     float raw = read_lux_value();
 
     float corrected = raw - ambient_offset;
     if (corrected < 0) corrected = 0.0;
 
     // Debug output
-    Serial.println("LUX MEASUREMENT AND CORRECTION:");
+    /* Serial.println("LUX MEASUREMENT AND CORRECTION:");
     Serial.print("Raw: ");
     Serial.print(raw);
     Serial.print(" | Ambient: ");
     Serial.print(ambient_offset);
     Serial.print(" | Corrected: ");
-    Serial.println(corrected);
+    Serial.println(corrected); */
 
     int target_pwm = calculate_pwm_duty_cycle(corrected);
 
