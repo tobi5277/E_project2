@@ -97,7 +97,7 @@ void get_current_saving(){
   for (int i = 0; i < NUM_CHANNELS; i++){
     cur_pwms_sum += get_pwm(i);
   }
-  int saving = 100 - ceil((cur_pwms_sum/(NUM_CHANNELS * 4095)) * 100);
+  int saving = 100 - ceil((cur_pwms_sum/ (float)(NUM_CHANNELS * 4095)) * 100);
   Serial1.print("SAVING ");
   Serial1.println(saving);
 }
@@ -185,6 +185,10 @@ void update_pwm_fade() {
       fs.end = 0;
       if (!fs.active && fs.current > 0) {
         fade_led_async(ch, fs.current, 0, 500, 1);
+      }
+      else if (!fs.active){
+        fs.current = 0;
+        pwm.setPWM(ch, 0, 0);
       }
       continue;
     }
