@@ -126,10 +126,7 @@ void fade_led_async(int channel, int start_value, int end_value, int duration_ms
   if (step_size <= 0) step_size = 1;
 
   Fadestate &fs = fade_state[channel];
-  if (!occupancy_zones[channel]){
-    end_value = 0;
-  }
-  else end_value = floor(end_value * (current_preset/4.0));
+  end_value = floor(end_value * (current_preset/4.0));
 
   /* If start and end values are the same or duration is invalid, 
   set PWM directly and deactivate fade */
@@ -189,9 +186,9 @@ void update_pwm_fade() {
       if (!fs.active && fs.current > 0) {
         fade_led_async(ch, fs.current, 0, 500, 1);
       }
-      else if (fs.active){
-        fade_led_async(ch, fs.current, 0, 500, 1);
+      else if (!fs.active){
         fs.current = 0;
+        pwm.setPWM(ch, 0, 0);
       }
       continue;
     }

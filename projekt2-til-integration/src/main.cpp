@@ -49,10 +49,11 @@ void setup() {
 }
 
 void loop() {
+  update_pwm_fade();          // Update LED fades
   uart_handler_update();      // Handle all serial input
   sensor_control_update();    // Update light sensor
   update_tyveri_sikring();    // Update burglary state machine
-  update_pwm_fade();          // Update LED fades
+  
 }
 
 

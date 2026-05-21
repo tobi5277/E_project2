@@ -16,19 +16,10 @@ class "main.cpp" as Main <<module>> {
 }
 
 class "pwm_control.cpp" as PWMControl <<module>> {
-  +pwm: Adafruit_PWMServoDriver
+  +extern pwm: Adafruit_PWMServoDriver
   +fade_state : FadeState
-  +current_preset : int
-  +lights_off_since : unsigned long
-  +all_lights_off : bool
-  +occupancy_zones[4] : int
-  +force_off[4] : bool
   +setup_pwm() : void
   +get_pwm(int channel) : int
-  +update_selected_preset() : void
-  +update_selected_preset_value(int new_preset) : void
-  +update_occupancy_zones(int zones[4]) : void
-  +parse_zones_command(String command) : void
   +fade_led(int channel, int start_value, int end_value, int delay_ms) : void
   +fade_led_async(int channel, int start_value, int end_value, int duration_ms, int step_size = 1) : void
   +update_pwm_fade() : void
@@ -38,10 +29,9 @@ class "pwm_control.cpp" as PWMControl <<module>> {
 
 }
 
-
 class "sensor_control.cpp" as SensorControl <<module>> {
-  +tsl: Adafruit_TSL2591
-  +pwm: Adafruit_PWMServoDriver
+  +extern tsl: Adafruit_TSL2591
+  +extern pwm: Adafruit_PWMServoDriver
   +lux_state: LuxSampleState
   +ambient_offset : float
   +ambient_calibrated : bool
@@ -56,18 +46,9 @@ class "sensor_control.cpp" as SensorControl <<module>> {
   +sensor_control_update() : void
 }
 
-class "uart_handler.cpp" as UARTHandler <<module>> {
-  +handle_burglary_command(String command) : void
-  +handle_preset_command(String command) : void
-  +handle_zones_command(String command) : void
-  +route_command(String command) : void
-  +uart_handler_update() : void
-}
-class "tyveri_sikring.cpp" as BurglaryProtection <<module>> {
-  +parse_burglary_command(String command) : void
-  +update_tyveri_sikring() : void
-  +tyveri_sikring : TyveriSikring
-}
+
+
+
 class "Adafruit_PWMServoDriver" as PWMDriver <<external>>
 class "Adafruit_TSL2591" as TSL2591 <<external>>
 class "Wire / I2C" as I2C <<external>>
@@ -77,25 +58,17 @@ class "Arduino Core" as ArduinoCore <<external>>
 
 Main "1"..> "1" PWMControl : setup_pwm()\nupdate()
 Main "1"..> "1" SensorControl : init + update
-Main "1"..> "1" UARTHandler : update()
-Main "1"..> "1" BurglaryProtection : update()
 
-
-
-SensorControl "1" --> "1" TSL2591 : reads lux
-
+SensorControl "1" --> "1" TSL2591 : \n\n \nreads lux
 SensorControl "1"..> "1" PWMControl : set/update PWM
 PWMControl "1" --> "1" PWMDriver : controls PWM
-PWMControl "1" --> "1" StateMachine : manages fading state
-
 SensorControl "1"..> "1" I2C : sensor comm
 
-Main "1"..> "1" ArduinoCore : \n\n\n\nSerial, Wire, timing, String
+Main "1"..> "1" ArduinoCore : \n\n\n\n\n\n\n\n\n\n\n\nSerial, Wire, timing \n
 
 Main -[hidden]-> PWMControl
 PWMControl -[hidden]-> SensorControl
-SensorControl -[hidden]-> UARTHandler
-UARTHandler -[hidden]-> BurglaryProtection
+
 
 PWMDriver -[hidden]-> TSL2591
 TSL2591 -[hidden]-> I2C

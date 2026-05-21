@@ -1,0 +1,25 @@
+@startuml
+
+[*] --> Idle
+
+state Idle {
+  fs.active = false
+}
+
+state FadeActive {
+  :fs.active = true
+  :fs.current += step
+  pwm.setPWM()
+}
+
+Idle --> FadeActive : fade_led_async()
+
+FadeActive --> Idle : fs.current == fs.end\nfs.active = false
+
+FadeActive --> FadeActive : update_pwm_fade()\n[time >= interval]
+
+' Occupancy override (NOT a state)
+Idle --> FadeActive : occupancy == 0 && fs.current > 0\nfade to 0
+FadeActive --> FadeActive : occupancy == 0\nfs.end = 0
+
+@enduml

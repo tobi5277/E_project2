@@ -99,7 +99,6 @@ int calculate_pwm_duty_cycle(float lux) {
   // invert the response (high pwm -> low LED), and scale to pwm
   int pwm = (1.0 - normalized) * 4095;
   return pwm;
-
 }
 
 /* called in loop(): updates sensor values after designated time
@@ -119,9 +118,9 @@ void sensor_control_update(){
     Serial.print("Raw: ");
     Serial.print(raw);
     Serial.print(" | Ambient: ");
-    Serial.print(ambient_offset);*/
+    Serial.print(ambient_offset);
     Serial.print(" | Corrected: ");
-    Serial.println(corrected);  
+    Serial.println(corrected); */
 
     int target_pwm = calculate_pwm_duty_cycle(corrected);
 
