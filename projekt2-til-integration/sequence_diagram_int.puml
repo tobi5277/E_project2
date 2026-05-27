@@ -1,0 +1,16 @@
+@startuml
+
+participant "Main Loop" as Main
+participant pwm_control as PWM
+participant sensor_control as Sensor
+
+Main -> PWM : setup_pwm()
+Main -> Sensor : init_light_sensor()
+
+loop Main Loop
+    Main -> Sensor : sensor_control_update()
+    Sensor --> PWM : led_fade(pwm_value)
+end
+
+
+@enduml

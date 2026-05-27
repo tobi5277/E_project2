@@ -1,0 +1,40 @@
+@startuml
+
+
+participant "Main" as Main
+participant pwm_control as PWM
+participant sensor_control as Sensor
+participant uart_handler as UART
+participant tyveri_sikring as Tyveri
+
+
+Main -> PWM : setup_pwm()
+
+Main -> Sensor : init_light_sensor()
+
+
+loop Main Loop
+    Main -> UART : uart_handler_update()
+    activate UART
+    alt command starts with "TyvAlarm"
+    UART --> Tyveri : uart_route_command(command)
+    end
+    alt command starts with "Preset" OR\ncommand starts with "Zones"
+    UART --> PWM : uart_route_command(command)
+    end
+    deactivate UART
+
+    
+    Main -> Sensor : sensor_control_update()
+    activate Sensor
+    Sensor --> PWM : led_fade(pwm_value)
+    deactivate Sensor
+    Main -> Tyveri : update_tyveri_sikring()
+    alt tyveri.on == true
+    Tyveri --> PWM : led_fade(pwm_value)
+
+end
+
+
+
+@enduml

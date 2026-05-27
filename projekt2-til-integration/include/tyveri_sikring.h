@@ -1,3 +1,5 @@
+#ifndef TYVERI_SIKRING_H
+#define TYVERI_SIKRING_H
 #include "pwm_control.h"
 #include <Arduino.h>
 #include <Adafruit_PWMServoDriver.h>
@@ -22,4 +24,4 @@ extern struct TyveriSikring tyveri_sikring;
 
 void update_tyveri_sikring();
 void parse_burglary_command(String command);
-
+#define TYVERI_SIKRING_H

@@ -32,10 +32,10 @@ void update_tyveri_sikring() {
   switch (tyveri_sikring.state) {
     case TYVERI_IDLE:
       // Transition from disabled to enabled
-      if (tyveri_sikring.tyveri_on) {
+      if (tyveri_sikring.tyveri_on && all_lights_off_bool) {
         tyveri_sikring.state = TYVERI_WAITING;
         tyveri_sikring.phase_start_time = now;
-        Serial.println("Burglary mode: entering WAITING phase (1 hour)");
+        Serial.println("Burglary mode: entering WAITING phase (10s)");
       }
       break;
 
@@ -46,11 +46,11 @@ void update_tyveri_sikring() {
         tyveri_sikring.state = TYVERI_LIGHTS_ON;
         tyveri_sikring.phase_start_time = now;
         
-        // Fade all 4 lights on
+        // Fade all 4 lights on to max
         for (int i = 0; i < 4; i++) {
           fade_led_async(i, 0, 4095, 500, 1);
         }
-        Serial.println("Burglary mode: WAITING timeout reached, lights ON for 5 minutes");
+        Serial.println("Burglary mode: WAITING timeout reached, lights ON for 2 seconds");
       }
       break;
 
@@ -71,9 +71,7 @@ void update_tyveri_sikring() {
 }
 
 void parse_burglary_command(String command) {
-  command.toUpperCase();
   command.trim();
-
   if (command == "TyvAlarmOn") {
     if (!tyveri_sikring.tyveri_on) {
       tyveri_sikring.tyveri_on = true;

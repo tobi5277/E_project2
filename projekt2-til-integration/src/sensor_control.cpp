@@ -87,8 +87,11 @@ uint16_t integration_time_to_ms(tsl2591IntegrationTime_t integration_time){
 int calculate_pwm_duty_cycle(float lux) {
   // Map lux values to PWM duty cycle (0-4095)
   // Lower lux should produce brighter output, higher lux should dim the LEDs.
-  float min_lux = 0;
+  float min_lux = 200;
   float max_lux = 1000;
+  if (lux < min_lux){
+    return 0;
+  }
 
   // clamp lux to a valid range (0 - 4095)
   lux = constrain(lux, min_lux, max_lux); 
@@ -119,9 +122,9 @@ void sensor_control_update(){
     Serial.print("Raw: ");
     Serial.print(raw);
     Serial.print(" | Ambient: ");
-    Serial.print(ambient_offset);*/
+    Serial.print(ambient_offset);
     Serial.print(" | Corrected: ");
-    Serial.println(corrected);  
+    Serial.println(corrected);   */
 
     int target_pwm = calculate_pwm_duty_cycle(corrected);
 

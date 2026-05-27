@@ -120,23 +120,27 @@ void fade_led_async(int channel, int start_value, int end_value, int duration_ms
   // Ignore any ON request while forced OFF
   if (force_off[channel] && end_value > 0) return;
 
-
+  // ensure the channel is between 0 and NUM_CHANNELS
   if (channel < 0 || channel >=NUM_CHANNELS) return;
   // Ensure step_size is positive
   if (step_size <= 0) step_size = 1;
 
+  // define fs as the state belonging to the channel from parameters.
   Fadestate &fs = fade_state[channel];
   if (!occupancy_zones[channel]){
     end_value = 0;
   }
-  else end_value = floor(end_value * (current_preset/4.0));
+  else {
+    end_value = floor(end_value * (current_preset/4.0));
+    /* Serial.print("PWM FADE TO: ");
+    Serial.println(end_value);  */
+  }
 
   /* If start and end values are the same or duration is invalid, 
   set PWM directly and deactivate fade */
   if (start_value == end_value || duration_ms <= 0) {
     pwm.setPWM(channel, 0, end_value);
     fs.active = false;
-    get_current_saving();
     return;
   }
 
@@ -177,21 +181,21 @@ if no update is needed or if no fade is active.
 void update_pwm_fade() {
   unsigned long now = micros();  // Get current time in microseconds
   bool all_off = true; // temp check for burglary security.
-
+  get_current_saving();
   for (int ch = 0; ch < NUM_CHANNELS; ch++){
     Fadestate &fs = fade_state[ch];
     force_off[ch] = !occupancy_zones[ch];
 
     // If zone is inactive -> force fade to 0
-    if (!occupancy_zones[ch]) {
+    if (!occupancy_zones[ch] && (fs.end != 0)) {
       // enforce target = off
-      fs.end = 0;
       if (!fs.active && fs.current > 0) {
         fade_led_async(ch, fs.current, 0, 500, 1);
       }
       else if (fs.active){
-        fade_led_async(ch, fs.current, 0, 500, 1);
         fs.current = 0;
+        fs.active = false;
+        pwm.setPWM(ch, 0, 0);
       }
       continue;
     }

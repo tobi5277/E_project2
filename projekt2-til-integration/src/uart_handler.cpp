@@ -7,6 +7,7 @@
  * Handle burglary security commands.
  */
 void handle_burglary_command(String command) {
+  Serial.print("Tyveri setting sat: ");
   Serial.println(command);
   parse_burglary_command(command);
 }
